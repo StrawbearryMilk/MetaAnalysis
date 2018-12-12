@@ -1,0 +1,635 @@
+---
+title: "Meta-Analysis Notebook 2.0"
+output:
+  html_notebook: default
+  html_document: default
+  pdf_document: default
+---
+
+###This contains results for task variables, aggregated studies, and regressions
+```{r echo=FALSE, include = FALSE}
+library("compute.es")
+library("metafor")
+library("MAd")
+library("meta")
+header <- read.csv("~/R/PsyR/combined_meta2.csv",header = FALSE, skip = 1, nrows = 1, as.is = T, sep = ",", dec = ".")
+data <- read.csv("~/R/PsYR/combined_meta2.csv", stringsAsFactors = FALSE, sep = ",", dec = ".")
+colnames(data) <- header
+data <- data[,-c(9:12)]
+to.use <- which(data[,8] == 1)
+data <- data[to.use,]
+data$Type = toupper(data$Type)
+
+#Data saved as characters, this converts them to numeric values
+for (i in 9:18){ 
+  data[,i] <- as.numeric(data[,i])
+}
+
+#Alter means based on polarity
+meanCols = c(14,16)
+data[,meanCols] = data[,meanCols] * data$Task_Value
+```
+This table lists the occurences of each Types
+```{r}
+#count occurences of each Type
+for(i in 1:length(data$Type))
+     {
+  if (data$Type[i] == "EF-INHIBOTORY CONTROL" | data$Type[i] =="EF - INHIBITORY CONTROL")
+    {
+      data$Type[i] = "EF-INHIBITORY CONTROL"
+  }
+}
+library(data.table)
+data.table(data$Type)[,.N,by=data$Type]
+```
+
+```{r echo = FALSE, include = FALSE}
+#function to be called on to remove task variable from coefficient name
+#Parameters are length (number of characters to strip), v (vector of coefficient names)
+taskTrim <- function(length, v)
+  {
+  for (i in 2:length(v)) #1 is the intercept, no need to alter this one
+    {
+    row.names(v)[i] = substring(row.names(v)[i], length+1)
+    }
+  return(v)
+  }
+```
+Attention-Sustained has the most values, so I'll work with this one first. 
+```{r echo = FALSE}
+atsu_rows <- which(data$Type == "AT-SUSTAINED")
+atsu <- data[atsu_rows,]
+
+atsu.res <- mes(m.1 = Mean_Post_T, m.2 = Mean_Post_C, sd.1 = SD_Post_T, sd.2 = SD_Post_C, n.1 = nT, n.2 = nC,
+           id = as.numeric(ID), data = atsu)
+atsu.task.variable <- paste(atsu$Task, atsu$Variable, sep = " - ")
+atsu.es <- cbind(atsu[c(1,2,3,5)],atsu.task.variable,atsu[c(8,9,10,11,12,18)], atsu.res[,c(13,14,15,16)])
+
+atsu.res
+atsu.es
+```
+Attention Sustained Task-Variable Coefficients
+```{r echo = FALSE}
+
+atsu.c <- cbind(atsu[c(1,2,3)],atsu.task.variable,atsu[9:21])
+
+meta.atsu <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = atsu.task.variable, data = atsu.c, sm = "SMD",method.smd = "Hedges")
+meta.atsu
+```
+Task-Variable Plots
+```{r echo = FALSE}
+funnel(meta.atsu)
+forest(meta.atsu, leftcols=c("studlab"), fontsize = 6, plotwidth = "4cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Aggregated Results
+```{r echo=FALSE}
+study.atsu <- paste(atsu.c$Author, ", ", atsu.c$Year, sep="")
+agg <- update(meta.atsu, byvar = study.atsu, bylab = "Study")
+atsu.agg <- metabind(agg, pooled = "random")
+atsu.agg
+```
+
+Regression
+```{r echo = FALSE}
+drop <- which(is.na(atsu.c$Num_Session) | is.na(atsu.c$Treat_Duration_Hour) | is.na(atsu.c$Home_Duration_Hour))
+atsu2 <- atsu.c[-drop,]
+meta.atsu2 <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = atsu.task.variable, data = atsu2, sm = "SMD",method.smd = "Hedges")
+metareg(x = meta.atsu2, ~Num_Session + Treat_Duration_Hour + Home_Duration_Hour)
+```
+
+Aggregated Plots
+```{r echo = FALSE}
+funnel(atsu.agg)
+forest(atsu.agg, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+
+```
+Attention-Selective
+```{r echo = FALSE}
+atse_rows <- which(data$Type == "AT-SELECTIVE")
+atse <- data[atse_rows,]
+
+atse.res <- mes(m.1 = Mean_Post_T, m.2 = Mean_Post_C, sd.1 = SD_Post_T, sd.2 = SD_Post_C, n.1 = nT, n.2 = nC,
+           id = as.numeric(ID), data = atse)
+atse.task.variable <- paste(atse$Task, atse$Variable, sep = " - ")
+atse.es <- cbind(atse[c(1,2,3,5)],atse.task.variable,atse[c(8,9,10,11,12,18)], atse.res[,c(13,14,15,16)])
+
+atse.res
+atse.es
+```
+Task variable Coefficients
+```{r echo = FALSE}
+
+atse.c <- cbind(atse[c(1,2,3)],atse.task.variable,atse[9:21])
+
+meta.atse <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = atse.task.variable, data = atse.c, sm = "SMD",method.smd = "Hedges")
+meta.atse
+```
+Task-Variable Plots
+```{r echo = FALSE}
+funnel(meta.atse)
+forest(meta.atse, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Aggregated Results
+```{r echo =FALSE}
+study.atse <- paste(atse.c$Author, ", ", atse.c$Year, sep="")
+agg <- update(meta.atse, byvar = study.atse, bylab = "Study")
+atse.agg <- metabind(agg, pooled = "random")
+atse.agg
+```
+
+Regression
+```{r echo = FALSE}
+drop <- which(is.na(atse.c$Num_Session) | is.na(atse.c$Treat_Duration_Hour) | is.na(atse.c$Home_Duration_Hour))
+atse2 <- atse.c[-drop,]
+meta.atse2 <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = atse.task.variable, data = atse2, sm = "SMD",method.smd = "Hedges")
+metareg(x = meta.atse2, ~Num_Session + Treat_Duration_Hour + Home_Duration_Hour)
+```
+
+Aggregated Plots
+```{r echo = FALSE}
+funnel(atse.agg)
+forest(atse.agg, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Attention-Misc. Non-Distractability
+```{r echo = FALSE}
+atnd_rows <- which(data$Type == "AT-MISCELLANEOUS - NON-DISTRACTABILITY")
+atnd <- data[atnd_rows,]
+
+atnd.res <- mes(m.1 = Mean_Post_T, m.2 = Mean_Post_C, sd.1 = SD_Post_T, sd.2 = SD_Post_C, n.1 = nT, n.2 = nC,
+           id = as.numeric(ID), data = atnd)
+atnd.task.variable <- paste(atnd$Task, atnd$Variable, sep = " - ")
+atnd.es <- cbind(atnd[c(1,2,3,5)],atnd.task.variable,atnd[c(8,9,10,11,12,18)], atnd.res[,c(13,14,15,16)])
+
+atnd.res
+atnd.es
+```
+Task Variable Coefficients
+```{r echo = FALSE}
+
+atnd.c <- cbind(atnd[c(1,2,3)],atnd.task.variable,atnd[9:21])
+
+meta.atnd <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = atnd.task.variable, data = atnd.c, sm = "SMD",method.smd = "Hedges")
+meta.atnd
+```
+
+Task-Variable Plots
+```{r echo = FALSE}
+funnel(meta.atnd)
+forest(meta.atnd, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Aggregated Results
+```{r echo = FALSE}
+study.atnd <- paste(atnd.c$Author, ", ", atnd.c$Year, sep="")
+agg <- update(meta.atnd, byvar = study.atnd, bylab = "Study")
+atnd.agg <- metabind(agg, pooled = "random")
+atnd.agg
+```
+Regression
+```{r echo = FALSE}
+drop <- which(is.na(atnd.c$Num_Session) | is.na(atnd.c$Treat_Duration_Hour) | is.na(atnd.c$Home_Duration_Hour))
+atnd2 <- atnd.c[-drop,]
+meta.atnd2 <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = atnd.task.variable, data = atnd2, sm = "SMD",method.smd = "Hedges")
+metareg(x = meta.atnd2, ~Num_Session + Treat_Duration_Hour + Home_Duration_Hour)
+```
+Aggregated Plots
+```{r echo = FALSE}
+funnel(atnd.agg)
+forest(atnd.agg, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+
+Long-term Memory
+```{r echo = FALSE}
+lmdt_rows <- which(data$Type == "LM")
+lmdt <- data[lmdt_rows,]
+
+lmdt.res <- mes(m.1 = Mean_Post_T, m.2 = Mean_Post_C, sd.1 = SD_Post_T, sd.2 = SD_Post_C, n.1 = nT, n.2 = nC,
+           id = as.numeric(ID), data = lmdt)
+lmdt.task.variable <- paste(lmdt$Task, lmdt$Variable, sep = " - ")
+lmdt.es <- cbind(lmdt[c(1,2,3,5)],lmdt.task.variable,lmdt[c(8,9,10,11,12,18)], lmdt.res[,c(13,14,15,16)])
+
+lmdt.res
+lmdt.es
+```
+Task Variable Coefficients
+```{r echo = FALSE}
+
+lmdt.c <- cbind(lmdt[c(1,2,3)],lmdt.task.variable,lmdt[9:21])
+
+meta.lmdt <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = lmdt.task.variable, data = lmdt.c, sm = "SMD",method.smd = "Hedges")
+meta.lmdt
+```
+Task-Variable Plots
+```{r echo = FALSE}
+funnel(meta.lmdt)
+forest(meta.lmdt, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Aggregated Results
+```{r echo=FALSE}
+study.lmdt <- paste(lmdt.c$Author, ", ", lmdt.c$Year, sep="")
+agg <- update(meta.lmdt, byvar = study.lmdt, bylab = "Study")
+lmdt.agg <- metabind(agg, pooled = "random")
+lmdt.agg
+```
+Regression
+```{r echo = FALSE}
+drop <- which(is.na(lmdt.c$Num_Session) | is.na(lmdt.c$Treat_Duration_Hour) | is.na(lmdt.c$Home_Duration_Hour))
+lmdt2 <- lmdt.c[-drop,]
+meta.lmdt2 <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = lmdt.task.variable, data = lmdt2, sm = "SMD",method.smd = "Hedges")
+metareg(x = meta.lmdt2, ~Num_Session + Treat_Duration_Hour + Home_Duration_Hour)
+```
+
+Aggregated Plots
+```{r echo = FALSE}
+funnel(lmdt.agg)
+forest(lmdt.agg, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+
+```
+
+Working Memory
+```{r echo = FALSE}
+wmdt_rows <- which(data$Type == "WM")
+wmdt <- data[wmdt_rows,]
+
+wmdt.res <- mes(m.1 = Mean_Post_T, m.2 = Mean_Post_C, sd.1 = SD_Post_T, sd.2 = SD_Post_C, n.1 = nT, n.2 = nC,
+           id = as.numeric(ID), data = wmdt)
+wmdt.task.variable <- paste(wmdt$Task, wmdt$Variable, sep = " - ")
+wmdt.es <- cbind(wmdt[c(1,2,3,5)],wmdt.task.variable,wmdt[c(8,9,10,11,12,18)], wmdt.res[,c(13,14,15,16)])
+
+wmdt.res
+wmdt.es
+```
+Task Variable coefficients
+```{r echo = FALSE}
+
+wmdt.c <- cbind(wmdt[c(1,2,3)],wmdt.task.variable,wmdt[9:21])
+
+meta.wmdt <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = wmdt.task.variable, data = wmdt.c, sm = "SMD",method.smd = "Hedges")
+meta.wmdt
+```
+Task-Variable Plots
+```{r echo = FALSE}
+funnel(meta.wmdt)
+forest(meta.wmdt, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Aggregate Results
+```{r echo = FALSE}
+study.wmdt <- paste(wmdt.c$Author, ", ", wmdt.c$Year, sep="")
+agg <- update(meta.wmdt, byvar = study.wmdt, bylab = "Study")
+wmdt.agg <- metabind(agg, pooled = "random")
+wmdt.agg
+```
+Regression
+```{r echo = FALSE}
+drop <- which(is.na(wmdt.c$Num_Session) | is.na(wmdt.c$Treat_Duration_Hour) | is.na(wmdt.c$Home_Duration_Hour))
+wmdt2 <- wmdt.c[-drop,]
+meta.wmdt2 <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = wmdt.task.variable, data = wmdt2, sm = "SMD",method.smd = "Hedges")
+metareg(x = meta.wmdt2, ~Num_Session + Treat_Duration_Hour + Home_Duration_Hour)
+```
+
+Aggregated Plots
+```{r echo = FALSE}
+funnel(wmdt.agg)
+forest(wmdt.agg, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Executive Functioning and Working Memory
+```{r echo = FALSE}
+efwm_rows <- which(data$Type == "EF AND WM")
+efwm <- data[efwm_rows,]
+
+efwm.res <- mes(m.1 = Mean_Post_T, m.2 = Mean_Post_C, sd.1 = SD_Post_T, sd.2 = SD_Post_C, n.1 = nT, n.2 = nC,
+           id = as.numeric(ID), data = efwm)
+efwm.task.variable <- paste(efwm$Task, efwm$Variable, sep = " - ")
+efwm.es <- cbind(efwm[c(1,2,3,5)],efwm.task.variable,efwm[c(8,9,10,11,12,18)], efwm.res[,c(13,14,15,16)])
+
+efwm.res
+efwm.es
+```
+Task Variable Coefficients
+```{r echo = FALSE}
+
+efwm.c <- cbind(efwm[c(1,2,3)],efwm.task.variable,efwm[9:21])
+
+meta.efwm <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efwm.task.variable, data = efwm.c, sm = "SMD",method.smd = "Hedges")
+meta.efwm
+```
+Task-Variable Plots
+```{r echo = FALSE}
+funnel(meta.efwm)
+forest(meta.efwm, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Aggregated Results
+```{r echo = FALSE}
+study.efwm <- paste(efwm.c$Author, ", ", efwm.c$Year, sep="")
+agg <- update(meta.efwm, byvar = study.efwm, bylab = "Study")
+efwm.agg <- metabind(agg, pooled = "random")
+efwm.agg
+```
+Regression
+```{r echo = FALSE}
+drop <- which(is.na(efwm.c$Num_Session) | is.na(efwm.c$Treat_Duration_Hour) | is.na(efwm.c$Home_Duration_Hour))
+efwm2 <- efwm.c[-drop,]
+meta.efwm2 <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efwm.task.variable, data = efwm2, sm = "SMD",method.smd = "Hedges")
+metareg(x = meta.efwm2, ~Num_Session + Treat_Duration_Hour + Home_Duration_Hour)
+```
+Aggregated Plots
+```{r echo = FALSE}
+funnel(efwm.agg)
+forest(efwm.agg, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+
+```
+Executive Functioning- Conflict Monitoring
+```{r echo = FALSE}
+efcm_rows <- which(data$Type == "EF-CONFLICT MONITORING")
+efcm <- data[efcm_rows,]
+
+efcm.res <- mes(m.1 = Mean_Post_T, m.2 = Mean_Post_C, sd.1 = SD_Post_T, sd.2 = SD_Post_C, n.1 = nT, n.2 = nC,
+           id = as.numeric(ID), data = efcm)
+efcm.task.variable <- paste(efcm$Task, efcm$Variable, sep = " - ")
+efcm.es <- cbind(efcm[c(1,2,3,5)],efcm.task.variable,efcm[c(8,9,10,11,12,18)], efcm.res[,c(13,14,15,16)])
+
+efcm.res
+efcm.es
+```
+Task Variable Coefficients
+```{r echo = FALSE}
+
+efcm.c <- cbind(efcm[c(1,2,3)],efcm.task.variable,efcm[9:21])
+
+meta.efcm <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efcm.task.variable, data = efcm.c, sm = "SMD",method.smd = "Hedges")
+meta.efcm
+```
+Task-Variable Plots
+```{r echo = FALSE}
+funnel(meta.atsu)
+forest(meta.atsu, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Aggregated Results
+```{r echo = FALSE}
+study.efcm <- paste(efcm.c$Author, ", ", efcm.c$Year, sep="")
+agg <- update(meta.efcm, byvar = study.efcm, bylab = "Study")
+efcm.agg <- metabind(agg, pooled = "random")
+efcm.agg
+```
+
+Regression
+```{r echo = FALSE}
+drop <- which(is.na(efcm.c$Num_Session) | is.na(efcm.c$Treat_Duration_Hour) | is.na(efcm.c$Home_Duration_Hour))
+efcm2 <- efcm.c[-drop,]
+meta.efcm2 <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efcm.task.variable, data = efcm2, sm = "SMD",method.smd = "Hedges")
+metareg(x = meta.efcm2, ~Num_Session + Treat_Duration_Hour + Home_Duration_Hour)
+```
+Aggregated Plots
+```{r echo = FALSE}
+funnel(efcm.agg)
+forest(efcm.agg, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+
+```
+Executive Functioning-Decision Making
+```{r echo = FALSE}
+efdm_rows <- which(data$Type == "EF-DECISION MAKING")
+efdm <- data[efdm_rows,]
+
+efdm.res <- mes(m.1 = Mean_Post_T, m.2 = Mean_Post_C, sd.1 = SD_Post_T, sd.2 = SD_Post_C, n.1 = nT, n.2 = nC,
+           id = as.numeric(ID), data = efdm)
+efdm.task.variable <- paste(efdm$Task, efdm$Variable, sep = " - ")
+efdm.es <- cbind(efdm[c(1,2,3,5)],efdm.task.variable,efdm[c(8,9,10,11,12,18)], efdm.res[,c(13,14,15,16)])
+
+efdm.res
+efdm.es
+```
+Task Variable Coefficients
+```{r echo = FALSE}
+
+efdm.c <- cbind(efdm[c(1,2,3)],efdm.task.variable,efdm[9:21])
+
+meta.efdm <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efdm.task.variable, data = efdm.c, sm = "SMD",method.smd = "Hedges")
+meta.efdm
+```
+Task-Variable Plots
+```{r echo = FALSE}
+funnel(meta.efdm)
+forest(meta.efdm, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Aggregated Results
+```{r echo = FALSE}
+study.efdm <- paste(efdm.c$Author, ", ", efdm.c$Year, sep="")
+agg <- update(meta.efdm, byvar = study.efdm, bylab = "Study")
+efdm.agg <- metabind(agg, pooled = "random")
+efdm.agg
+```
+Regression
+```{r echo = FALSE}
+drop <- which(is.na(efdm.c$Num_Session) | is.na(efdm.c$Treat_Duration_Hour) | is.na(efdm.c$Home_Duration_Hour))
+efdm2 <- efdm.c[-drop,]
+meta.efdm2 <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efdm.task.variable, data = efdm2, sm = "SMD",method.smd = "Hedges")
+metareg(x = meta.efdm2, ~Num_Session + Treat_Duration_Hour + Home_Duration_Hour)
+```
+Aggregated Plots
+```{r echo = FALSE}
+funnel(efdm.agg)
+forest(efdm.agg, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+
+```
+Executive Functioning- Planning
+```{r echo = FALSE}
+efpd_rows <- which(data$Type == "EF-PLANNING")
+efpd <- data[efpd_rows,]
+
+efpd.res <- mes(m.1 = Mean_Post_T, m.2 = Mean_Post_C, sd.1 = SD_Post_T, sd.2 = SD_Post_C, n.1 = nT, n.2 = nC,
+           id = as.numeric(ID), data = efpd)
+efpd.task.variable <- paste(efpd$Task, efpd$Variable, sep = " - ")
+efpd.es <- cbind(efpd[c(1,2,3,5)],efpd.task.variable,efpd[c(8,9,10,11,12,18)], efpd.res[,c(13,14,15,16)])
+
+efpd.res
+efpd.es
+```
+Task Variable Coefficients
+```{r echo = FALSE}
+efpd.c <- cbind(efpd[c(1,2,3)],efpd.task.variable,efpd[9:21])
+
+meta.efpd <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efpd.task.variable, data = efpd.c, sm = "SMD",method.smd = "Hedges")
+meta.efpd
+```
+Task-Variable Plots
+```{r echo = FALSE}
+funnel(meta.efpd)
+forest(meta.efpd, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Aggregated Results
+```{r echo = FALSE}
+study.efpd <- paste(efpd.c$Author, ", ", efpd.c$Year, sep="")
+agg <- update(meta.efpd, byvar = study.efpd, bylab = "Study")
+efpd.agg <- metabind(agg, pooled = "random")
+efpd.agg
+```
+Regression
+```{r echo = FALSE}
+drop <- which(is.na(efpd.c$Num_Session) | is.na(efpd.c$Treat_Duration_Hour) | is.na(efpd.c$Home_Duration_Hour))
+efpd2 <- efpd.c[-drop,]
+meta.efpd2 <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efpd.task.variable, data = efpd2, sm = "SMD",method.smd = "Hedges")
+metareg(x = meta.efpd2, ~Num_Session + Treat_Duration_Hour + Home_Duration_Hour)
+```
+Aggregated Plots
+```{r echo = FALSE}
+funnel(efpd.agg)
+forest(efpd.agg, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Executive Functioning- Cognitive Flexibility
+```{r echo = FALSE}
+efcf_rows <- which(data$Type == "EF-COGNITIVE FLEXIBILITY")
+efcf <- data[efcf_rows,]
+
+efcf.res <- mes(m.1 = Mean_Post_T, m.2 = Mean_Post_C, sd.1 = SD_Post_T, sd.2 = SD_Post_C, n.1 = nT, n.2 = nC,
+           id = as.numeric(ID), data = efcf)
+efcf.task.variable <- paste(efcf$Task, efcf$Variable, sep = " - ")
+efcf.es <- cbind(efcf[c(1,2,3,5)],efcf.task.variable,efcf[c(8,9,10,11,12,18)], efcf.res[,c(13,14,15,16)])
+
+efcf.res
+efcf.es
+```
+Task Variable Coefficients
+```{r echo = FALSE}
+
+efcf.c <- cbind(efcf[c(1,2,3)],efcf.task.variable,efcf[9:21])
+
+meta.efcf <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efcf.task.variable, data = efcf.c, sm = "SMD",method.smd = "Hedges")
+meta.efcf
+```
+Task-Variable Plots
+```{r echo = FALSE}
+funnel(meta.efcf)
+forest(meta.efcf, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Aggregated Results
+```{r echo=FALSE}
+study.efcf <- paste(efcf.c$Author, ", ", efcf.c$Year, sep="")
+agg <- update(meta.efcf, byvar = study.efcf, bylab = "Study")
+efcf.agg <- metabind(agg, pooled = "random")
+efcf.agg
+```
+Regression
+```{r echo = FALSE}
+drop <- which(is.na(efcf.c$Num_Session) | is.na(efcf.c$Treat_Duration_Hour) | is.na(efcf.c$Home_Duration_Hour))
+efcf2 <- efcf.c[-drop,]
+meta.efcf2 <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efcf.task.variable, data = efcf2, sm = "SMD",method.smd = "Hedges")
+metareg(x = meta.efcf2, ~Num_Session + Treat_Duration_Hour + Home_Duration_Hour)
+```
+Aggregated Plots
+```{r echo = FALSE}
+funnel(efcf.agg)
+forest(efcf.agg, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+
+```
+Executive Functioning- Inhibitory Control
+```{r echo = FALSE}
+efic_rows <- which(data$Type == "EF-INHIBITORY CONTROL")
+efic <- data[efic_rows,]
+
+efic.res <- mes(m.1 = Mean_Post_T, m.2 = Mean_Post_C, sd.1 = SD_Post_T, sd.2 = SD_Post_C, n.1 = nT, n.2 = nC,
+           id = as.numeric(ID), data = efic)
+efic.task.variable <- paste(efic$Task, efic$Variable, sep = " - ")
+efic.es <- cbind(efic[c(1,2,3,5)],efic.task.variable,efic[c(8,9,10,11,12,18)], efic.res[,c(13,14,15,16)])
+
+efic.res
+efic.es
+```
+Task Variable Coefficients
+```{r echo = FALSE}
+
+efic.c <- cbind(efic[c(1,2,3)],efic.task.variable,efic[9:21])
+
+meta.efic <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efic.task.variable, data = efic.c, sm = "SMD",method.smd = "Hedges")
+meta.efic
+```
+Task-Variable Plots
+```{r echo = FALSE}
+funnel(meta.efic)
+forest(meta.efic, leftcols=c("studlab"), fontsize = 8, plotwidth = "5cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
+Aggregated Results
+```{r echo = FALSE}
+study.efic <- paste(efic.c$Author, ", ", efic.c$Year, sep="")
+agg <- update(meta.efic, byvar = study.efic, bylab = "Study")
+efic.agg <- metabind(agg, pooled = "random")
+efic.agg
+```
+
+Regression
+```{r echo = FALSE}
+drop <- which(is.na(efic.c$Num_Session) | is.na(efic.c$Treat_Duration_Hour))
+efic2 <- efic.c[-drop,]
+meta.efic2 <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T, 
+                    n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
+                    studlab = efic.task.variable, data = efic2, sm = "SMD",method.smd = "Hedges")
+metareg(x = meta.efic2, ~Num_Session + Treat_Duration_Hour + Home_Duration_Hour)
+efic2
+```
+Aggregated Plots
+```{r echo = FALSE}
+funnel(efic.agg)
+forest(efic.agg, leftcols=c("studlab"), fontsize = 10, plotwidth = "6cm", weight.study="random", squaresize =0, col.square = "black", label.right="Favors mindfullness-based", label.left = "Favors control", bylab = "Study",
+       overall = TRUE)
+```
