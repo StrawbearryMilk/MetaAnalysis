@@ -4,24 +4,20 @@ setwd(wd)
 library("tidyr")
 library(data.table)
 source("R/utils.R") #contains several meta-related functions to be used
-source("R/n-age-separator.R")
-filename = "Data/MBI on Cognitive Functions (additional articles) V7.csv"
-cols.to.use = c("ID","Author","Year","Title","Type","Task","Variable","Inclusion..1..Yes..2..No.", "Sample","Total.N...Mean.Age.","Total.N...Mean.Age.", "nT", "nC", "Num_Session", "Treat_Duration_Hour","Home_Duration_Hour","Mean_Post_T","SD_Post_T","Mean_Post_C","SD_Post_C","Task_Value")
+
+filename = "Data/MBI on Cognitive Functions (additional articles) V10.csv"
+cols.to.use = c("ID","Author","Year","Title","Type","Task","Variable","Inclusion..1..Yes..2..No.","Sample","MeanAge","nT", "nC", "Num_Session","Treat_Duration_Hour","Home_Duration_Hour","Mean_Post_T","SD_Post_T","Mean_Post_C","SD_Post_C","Task_Value")
 data <- read.csv(filename, stringsAsFactors = FALSE, sep = ",")[,cols.to.use]
-colnames(data)[colnames(data) == 'Total.N...Mean.Age.'] = "N"
-colnames(data)[colnames(data) == 'Total.N...Mean.Age..1'] = "Mean Age"
 colnames(data)[colnames(data) == 'Inclusion..1..Yes..2..No.'] = "Inclusion"
 to.use <- which(data[,"Inclusion"] == 1)
 data <- data[to.use,]
 data$Type = toupper(data$Type)
-for (i in 1:length(data[,"N"])){
-  N_age = suppressWarnings(getN_Age(data,"N",i))
-  data[i,"N"] = N_age[2]
-  data[i,"Mean Age"] = N_age[3]
-}
-data <- data %>% drop_na(`Mean Age`)
+
+#will use this later:
+#data <- data %>% drop_na(`MeanAge`)
+
 #Data saved as characters, this converts them to numeric values
-for (i in 10:21){ ##START AT 10
+for (i in 10:20){ ##START AT 10
   data[,i] <- suppressWarnings(as.numeric(data[,i]))
 }
 #removing rows with missing n's, means, sd's
@@ -44,11 +40,11 @@ for (cc in colCheck){
 
 
 #Alter means based on polarity
-meanCols = c(17,19)
+meanCols = c("Mean_Post_T","Mean_Post_C")
 data[,meanCols] = data[,meanCols] * data$Task_Value
 attach(data)
 data <- data[order(Author),]
 detach(data)
 #only use save/loadRDS for ONE object 
-saveRDS(data,file="Output/ModData1.Rda")
+saveRDS(data,file="Output/ModData2.Rda")
 #bar <- readRDS("ModData1.Rda")

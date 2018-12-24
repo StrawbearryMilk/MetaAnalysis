@@ -5,8 +5,11 @@ library(meta)
 library(metafor)
 library(plotly)
 
-aggregateSubdata <- function(subdata, meta.data = getMeta1(subdata)){
-	study <- paste(subdata$Author, ", ", subdata$Year, sep="")
+aggregateSubdata <- function(subdata, meta.data = getMeta1(subdata),sample = FALSE){
+  if (sample)
+    study = subdata$Sample
+  else
+    study <- paste(subdata$Author, ", ", subdata$Year, sep="")
 	agg <- update(meta.data, byvar = study, bylab = "Study")
 	agg <- metabind(agg, pooled = "random")
 	return(agg)
@@ -20,9 +23,11 @@ getES <- function(subdata){
   eff.size
 }
 
-getMeta <- function(subdata, task.variables){
+getMeta <- function(subdata, task.variables, resort = FALSE){
   prepData <- cbind(subdata[c(1,2,3)],task.variables,subdata[4:ncol(subdata)]) #preparing data for metacont function
-  
+    if (resort){
+      prepData <- prepData[order(prepData$task.variable),]
+      }
   metaF <- metacont(n.e = nT, mean.e = Mean_Post_T, sd.e = SD_Post_T,
                     n.c = nC, mean.c = Mean_Post_C, sd.c = SD_Post_C,
                     comb.fixed = FALSE, studlab = task.variables, data = prepData, sm = "SMD",method.smd = "Hedges")
